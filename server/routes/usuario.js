@@ -7,7 +7,38 @@ const Usuario = require('../models/usuario')
 const app = express()
 
 app.get('/usuario', function(req, res) {
-    res.json('get usuario local')
+
+    let desde = req.query.desde || 0
+    desde = Number(desde)
+
+    let limite = req.query.limite || 5
+    limite = Number(limite)
+
+    Usuario.find({}, 'nombre email role stado google img')
+        .skip(desde) //salta de 5 en 5
+        .limit(limite) //limite de registros a mostrar
+        .exec((err, usuarios) => {
+
+            if (err) {
+                return res.status(400).json({
+                    ok: false,
+                    err
+                })
+            }
+
+            Usuario.count({}, (err, conteo) => {
+                res.json({
+                    ok: true,
+                    usuarios,
+                    cuantos: conteo
+                })
+            })
+
+
+
+
+        })
+
 })
 
 
@@ -88,8 +119,60 @@ app.put('/usuario/:id', function(req, res) {
 })
 
 
-app.delete('/usuario', function(req, res) {
-    res.json('delete usuario')
+app.delete('/usuario/:cod', function(req, res) {
+
+    let id = req.params.cod
+
+    // Usuario.findByIdAndRemove(id, (err, usuarioBorrado) => {
+    //     if (err) {
+    //         return res.status(400).json({
+    //             ok: false,
+    //             err
+    //         })
+    //     }
+
+    //     if (!usuarioBorrado) {
+    //         return res.status(400).json({
+    //             ok: false,
+    //             err: {
+    //                 message: 'Usuario no encontrado'
+    //             }
+    //         })
+    //     }
+    //     res.json({
+    //         ok: true,
+    //         usuario: usuarioBorrado
+    //     })
+
+    // })
+
+    let cambiaEstado = {
+        estado: false
+    }
+
+    Usuario.findByIdAndUpdate(id, cambiaEstado, { new: true }, (err, usuarioBorrado) => {
+        if (err) {
+            return res.status(400).json({
+                ok: false,
+                err
+            })
+        }
+
+        if (!usuarioBorrado) {
+            return res.status(400).json({
+                ok: false,
+                err: {
+                    message: 'Usuario no encontrado'
+                }
+            })
+        }
+        res.json({
+            ok: true,
+            usuario: usuarioBorrado
+        })
+    })
+
+
 })
 
 module.exports = app
