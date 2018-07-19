@@ -8,13 +8,17 @@ const app = express()
 
 app.get('/usuario', function(req, res) {
 
+
+
     let desde = req.query.desde || 0
     desde = Number(desde)
 
     let limite = req.query.limite || 5
     limite = Number(limite)
 
-    Usuario.find({}, 'nombre email role stado google img')
+
+
+    Usuario.find({ estado: true }, 'nombre email role estado google img')
         .skip(desde) //salta de 5 en 5
         .limit(limite) //limite de registros a mostrar
         .exec((err, usuarios) => {
@@ -26,7 +30,7 @@ app.get('/usuario', function(req, res) {
                 })
             }
 
-            Usuario.count({}, (err, conteo) => {
+            Usuario.count({ estado: true }, (err, conteo) => {
                 res.json({
                     ok: true,
                     usuarios,
