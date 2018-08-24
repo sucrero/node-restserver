@@ -1,7 +1,7 @@
 const express = require('express')
 const Categoria = require('../models/categoria')
 
-let { verificaToken } = require('../middlewares/autenticacion')
+let { verificaToken, verificaAdmin_Role } = require('../middlewares/autenticacion')
 
 const app = express()
 
@@ -21,7 +21,9 @@ app.get('/categoria', verificaToken, (req, res) => {
     let limite = req.query.limite || 0
     limite = Number(limite)
 
-    Categoria.find()
+    Categoria.find({})
+        .sort('descripcion')
+        .populate('usuario', 'nombre email')
         .skip(desde)
         .limit(limite)
         .exec((err, categorias) => {
@@ -53,9 +55,17 @@ app.get('/categoria/:id', verificaToken, (req, res) => {
 
     Categoria.findById(cod, (err, categoriaDB) => {
         if (err) {
-            returnres.status(400).json({
+            return res.status(500).json({
                 ok: false,
                 err
+            })
+        }
+        if (!categoriaDB) {
+            return res.status(400).json({
+                ok: false,
+                err: {
+                    message: 'El id no es válido'
+                }
             })
         }
 
@@ -86,6 +96,12 @@ app.post('/categoria', verificaToken, (req, res) => {
 
     categoria.save((err, categoriaDB) => {
         if (err) {
+            return res.status(500).json({
+                ok: false,
+                err
+            })
+        }
+        if (!categoriaDB) {
             return res.status(400).json({
                 ok: false,
                 err
@@ -107,7 +123,32 @@ app.post('/categoria', verificaToken, (req, res) => {
 //========================================
 
 app.put('/categoria/:id', verificaToken, (req, res) => {
+    let id = req.params.id;
+    let body = req.body;
 
+    let descCategoria = {
+        descripcion: body.descripcion
+    }
+    Categoria.findByIdAndUpdate(id, descCategoria, { new: true, runValidators: true }, (err, categoriaDB) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                err
+            })
+        }
+        if (!categoriaDB) {
+            return res.status(400).json({
+                ok: false,
+                err
+            })
+        }
+        res.json({
+            ok: true,
+            categoria: categoriaDB
+        })
+
+
+    })
 
 })
 
@@ -115,10 +156,34 @@ app.put('/categoria/:id', verificaToken, (req, res) => {
 // actualizar una nueva categoría
 //========================================
 
-app.delete('/categoria/:id', verificaToken, (req, res) => {
+app.delete('/categoria/:id', [verificaToken, verificaAdmin_Role], (req, res) => {
     //solo un administrador puede borrar categorías
     // Categoria.findByIdAndRemove
+    let id = req.params.id;
 
+    Categoria.findByIdAndRemove(id, (err, categoriaDB) => {
+        if (err) {
+            return res.status(500).json({
+                ok: false,
+                err
+            })
+        }
+        if (!categoriaDB) {
+            returnres.status(400).json({
+                ok: false,
+                err: {
+                    message: 'El id no existe'
+                }
+            })
+        }
+
+        res.json({
+            ok: true,
+            message: 'Categoría borrada'
+        })
+
+
+    })
 })
 
 module.exports = app
